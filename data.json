@@ -1,0 +1,17 @@
+{
+    "S1": {
+        "password": "1",
+        "email": "kirsanov.artem.d@gmail.com",
+        "avatar": "S1.png"
+    },
+    "S2": {
+        "password": "2",
+        "email": "skelet0nch1k2025@gmail.com",
+        "avatar": "S2.png"
+    },
+    "Skeleton": {
+        "password": "11",
+        "email": "correctly@ukr.net",
+        "avatar": "Skeleton.png"
+    }
+}
