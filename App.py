@@ -6,7 +6,8 @@ import uuid
 import random
 import string
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory,request, jsonify
+import time
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 from shutil import copyfile
@@ -49,6 +50,8 @@ def send_email(to_email, subject, body):
     server.login(creds['email'], creds['password'])
     server.send_message(msg)
     server.quit()
+
+
 
 @app.route('/')
 def home():
@@ -290,11 +293,50 @@ def play_game(game_code, size, player, game_type):
         flash('Игра еще не началась', 'danger')
         return redirect(url_for('tictactoe_settings'))
 
-    # Здесь будет логика самой игры
-    return render_template('tictactoe.html')
+    # Инициализируем чат для этой игры, если нужно
+    if game_code not in chat_messages:
+        chat_messages[game_code] = []
+
+    return render_template('tictactoe.html',
+                           game_code=game_code,
+                           player=player,
+                           size=size,
+                           game_type=game_type)
+
+chat_messages = {}
 
 
+@app.route('/send_chat_message', methods=['POST'])
+def send_chat_message():
+    data = request.get_json()
+    game_code = data['game_code']
+    player = data['player']
+    message = data['message']
 
+    if game_code not in chat_messages:
+        chat_messages[game_code] = []
+
+    message_id = int(time.time() * 1000)  # Используем timestamp как ID
+    chat_messages[game_code].append({
+        'id': message_id,
+        'player': player,
+        'message': message,
+        'timestamp': time.time()
+    })
+
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/get_chat_messages')
+def get_chat_messages():
+    game_code = request.args.get('game_code')
+    last_id = int(request.args.get('last_id', 0))
+
+    if game_code not in chat_messages:
+        return jsonify([])
+
+    new_messages = [msg for msg in chat_messages[game_code] if msg['id'] > last_id]
+    return jsonify(new_messages)
 
 
 
