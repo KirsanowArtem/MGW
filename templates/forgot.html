@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Сброс пароля</h2>
+<form method="post" action="/forgot">
+    <input type="text" name="username" placeholder="Имя" required>
+    <input type="email" name="email" placeholder="Почта" required>
+    <button type="submit">Отправить ссылку</button>
+</form>
+{% endblock %}

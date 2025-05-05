@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+    }
+    .top-bar {
+      background: #333;
+      color: white;
+      padding: 10px 20px;
+      text-align: right;
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .avatar:hover {
+      transform: scale(1.1);
+    }
+    .menu {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      padding: 15px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .menu.active {
+      display: block;
+    }
+    .menu img {
+      width: 60px;
+      border-radius: 50%;
+    }
+    .menu p {
+      margin: 10px 0;
+    }
+    .menu a {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 12px;
+      background: #333;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <img src="{{ url_for('avatar', filename=avatar) }}" class="avatar" onclick="toggleMenu()">
+  </div>
+
+  <div class="menu" id="menu">
+    <img src="{{ url_for('avatar', filename=avatar) }}">
+    <p>{{ username }}</p>
+    <a href="{{ url_for('settings') }}">Настройки</a>
+    <a href="{{ url_for('logout') }}">Выход</a>
+  </div>
+
+  <div class="game-container">
+      <img src="{{ url_for('static', filename='tictactoe.png') }}" class="game-icon" onclick="window.location.href='{{ url_for('tictactoe_settings') }}'">
+      <div class="game-title">Крестики-нолики</div>
+  </div>
+
+  <script>
+    function toggleMenu() {
+      document.getElementById("menu").classList.toggle("active");
+    }
+  </script>
+</body>
+</html>

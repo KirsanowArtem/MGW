@@ -243,7 +243,6 @@ def create_tictactoe_game():
         }
         return {'game_code': game_code}
     except Exception as e:
-        app.logger.error(f"Error creating game: {str(e)}")
         return {'error': str(e)}, 500
 
 
@@ -253,32 +252,50 @@ def tictactoe(game_code, size, player, game_type):
         flash('Игра не найдена', 'danger')
         return redirect(url_for('home_logged'))
 
-    # Проверяем, готовы ли оба игрока
     room = rooms[game_code]
-    if room['player1_ready'] and room['player2_ready']:
-        return render_template('tictactoe.html')
-
-    # Устанавливаем флаг готовности для текущего игрока
     if player == 'v1':
         room['player1_ready'] = True
-        # Для игрока 1 показываем пригласительную ссылку
+        # Для первого игрока просто показываем ссылку
         return render_template('tictactoe_settings.html',
                                game_code=game_code,
-                               invite_link=f"{request.host_url}tictactoe/{game_code}/3v3/v2/friend")
+                               invite_link=f"{request.host_url}tictactoe/{game_code}/3v3/v2/friend",
+                               is_player1=True)
     else:
+        # Для второго игрока показываем кнопку "Я готов"
         room['player2_ready'] = True
-        # Для игрока 2 показываем кнопку "Начать игру"
         return render_template('tictactoe_settings.html',
                                game_code=game_code,
                                is_player2=True)
+
 
 @app.route('/start_tictactoe_game', methods=['POST'])
 def start_tictactoe_game():
     data = request.get_json()
     game_code = data.get('game_code')
     if game_code in rooms:
-        rooms[game_code]['player2_ready'] = True
-    return {'status': 'success'}
+        rooms[game_code]['started'] = True
+        return {'status': 'success'}
+    return {'status': 'error'}, 404
+
+@app.route('/tictactoe/<game_code>/<size>/<player>/<game_type>/status')
+def check_game_status(game_code, size, player, game_type):
+    if game_code in rooms and rooms[game_code].get('started'):
+        return {'started': True}
+    return {'started': False}
+
+
+@app.route('/tictactoe/<game_code>/<size>/<player>/<game_type>/play')
+def play_game(game_code, size, player, game_type):
+    if game_code not in rooms or not rooms[game_code].get('started'):
+        flash('Игра еще не началась', 'danger')
+        return redirect(url_for('tictactoe_settings'))
+
+    # Здесь будет логика самой игры
+    return render_template('tictactoe.html')
+
+
+
+
 
 
 

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Настройки игры</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .settings-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .size-info {
+      text-align: center;
+      font-size: 18px;
+      margin: 20px 0;
+    }
+    .play-button {
+      display: block;
+      width: 200px;
+      margin: 20px auto;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .invite-container {
+      margin-top: 30px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      display: none;
+    }
+    .invite-link {
+      font-size: 16px;
+      word-break: break-all;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #eee;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .qr-code {
+      margin: 15px auto;
+      width: 150px;
+      height: 150px;
+    }
+    .start-button {
+      display: none;
+      width: 200px;
+      margin: 20px auto;
+      padding: 10px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .status-message {
+      text-align: center;
+      margin: 20px 0;
+      font-size: 16px;
+      color: #666;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <h1>Крестики-нолики</h1>
+    <div class="size-info">Размер: 3×3</div>
+
+    <!-- Основная кнопка для создания игры -->
+    <button class="play-button" id="playWithFriend">Сыграть с другом</button>
+
+    <!-- Контейнер с пригласительной ссылкой (скрыт по умолчанию) -->
+    <div class="invite-container" id="inviteContainer">
+      <p>Отправьте эту ссылку другу:</p>
+      <div class="invite-link" id="inviteLink"></div>
+      <div class="qr-code" id="qrCode"></div>
+      <div class="status-message" id="waitingMessage">
+        Ожидаем подключения второго игрока...
+      </div>
+    </div>
+
+    <!-- Кнопка для второго игрока (скрыта по умолчанию) -->
+    <button class="start-button" id="startButton">Я готов</button>
+    <div class="status-message" id="connectionStatus"></div>
+  </div>
+
+  <script>
+    // Функция для копирования ссылки
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Ссылка скопирована!');
+      });
+    }
+
+    // Обработчик кнопки "Сыграть с другом"
+    document.getElementById('playWithFriend').addEventListener('click', async function() {
+      const button = this;
+      button.disabled = true;
+      button.textContent = 'Создание игры...';
+
+      try {
+        const response = await fetch("{{ url_for('create_tictactoe_game') }}");
+        const data = await response.json();
+
+        if (data.error) {
+          alert(data.error);
+          button.disabled = false;
+          button.textContent = 'Сыграть с другом';
+          return;
+        }
+
+        const inviteLink = `${window.location.origin}/tictactoe/${data.game_code}/3v3/v2/friend`;
+
+        // Показываем элементы приглашения
+        document.getElementById('inviteLink').innerText = inviteLink;
+        document.getElementById('inviteLink').onclick = () => copyToClipboard(inviteLink);
+        document.getElementById('inviteContainer').style.display = 'block';
+        document.getElementById('waitingMessage').style.display = 'block';
+
+        // Генерируем QR-код
+        const qrCodeImg = document.createElement('img');
+        qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(inviteLink)}`;
+        document.getElementById('qrCode').appendChild(qrCodeImg);
+
+        // Скрываем основную кнопку
+        button.style.display = 'none';
+
+        // Для первого игрока начинаем проверку статуса
+        checkGameStatus(data.game_code);
+
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Произошла ошибка при создании игры');
+        button.disabled = false;
+        button.textContent = 'Сыграть с другом';
+      }
+    });
+
+    // Функция проверки статуса игры (для первого игрока)
+    function checkGameStatus(gameCode) {
+      const checkInterval = setInterval(() => {
+        fetch(`/tictactoe/${gameCode}/3v3/v1/friend/status`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.started) {
+              clearInterval(checkInterval);
+              window.location.href = `/tictactoe/${gameCode}/3v3/v1/friend/play`;
+            }
+          });
+      }, 2000);
+    }
+
+    // Проверяем, является ли текущий пользователь вторым игроком
+    const pathParts = window.location.pathname.split('/');
+    if (pathParts.length >= 6 && pathParts[4] === 'v2') {
+      // Показываем кнопку "Я готов" для второго игрока
+      document.getElementById('playWithFriend').style.display = 'none';
+      document.getElementById('startButton').style.display = 'block';
+      document.getElementById('connectionStatus').style.display = 'block';
+
+      // Обработчик кнопки "Я готов"
+      document.getElementById('startButton').addEventListener('click', function() {
+        const button = this;
+        button.disabled = true;
+        button.textContent = 'Запуск игры...';
+        document.getElementById('connectionStatus').textContent = 'Запускаем игру...';
+
+        fetch("{{ url_for('start_tictactoe_game') }}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            game_code: pathParts[2]
+          })
+        }).then(response => {
+          if (response.ok) {
+            window.location.href = `/tictactoe/${pathParts[2]}/3v3/v2/friend/play`;
+          } else {
+            button.disabled = false;
+            button.textContent = 'Я готов';
+            document.getElementById('connectionStatus').textContent = 'Ошибка запуска игры';
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

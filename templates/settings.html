@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Настройки</title>
+    <style>
+        input[type="password"], input[type="text"] {
+            padding-right: 30px;
+        }
+        .eye-icon {
+            position: absolute;
+            right: 10px;
+            top: 9px;
+            cursor: pointer;
+        }
+        .field-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Настройки аккаунта</h2>
+    <form method="post" enctype="multipart/form-data">
+        <div>
+            <label>Имя:</label><br>
+            <input type="text" name="username" value="{{ username }}" required>
+        </div>
+
+        <div class="field-container">
+            <label>Пароль:</label><br>
+            <input type="password" name="password" value="{{ password }}" id="password-input">
+            <span class="eye-icon" onclick="togglePassword()" id="eye">👁️</span>
+        </div>
+
+        <div>
+            <label>Новый аватар:</label><br>
+            <input type="file" name="avatar" accept="image/*">
+        </div>
+
+        <div>
+            <img src="{{ url_for('static', filename='../avatar/' + avatar) }}" alt="Аватар" width="100">
+        </div>
+
+        <br>
+        <button type="submit">Сохранить</button>
+    </form>
+
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password-input');
+            const eye = document.getElementById('eye');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                eye.textContent = '👁️';
+            }
+        }
+    </script>
+</body>
+</html>

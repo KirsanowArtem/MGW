@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Смена пароля</h2>
+<form method="post">
+    <label>Имя:</label>
+    <input type="text" name="username" value="{{ username }}" readonly>
+
+    <label>Почта:</label>
+    <input type="email" name="email" value="{{ email }}" readonly>
+
+    <label>Новый пароль:</label>
+    <input type="password" name="password" placeholder="Новый пароль" required>
+
+    <label>Повторите пароль:</label>
+    <input type="password" name="confirm" placeholder="Повторите пароль" required>
+
+    <button type="submit">Сменить пароль</button>
+</form>
+{% endblock %}
