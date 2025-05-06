@@ -238,16 +238,22 @@ def create_tictactoe_game():
     try:
         characters = string.ascii_uppercase + string.digits
         game_code = ''.join([random.SystemRandom().choice(characters) for _ in range(6)])
+
+        # Сохраняем имя текущего пользователя
+        username = session.get('username', 'Игрок 1')
         rooms[game_code] = {
             'player1_ready': False,
             'player2_ready': False,
-            'size': '3v3',
-            'type': 'friend'
+            'player1_name': username,
+            'player2_name': 'Игрок 2',  # Будет обновлено при подключении
+            'board': [''] * 9,
+            'current_turn': 'v1',
+            'game_active': True,
+            'winner': None
         }
         return {'game_code': game_code}
     except Exception as e:
         return {'error': str(e)}, 500
-
 
 @app.route('/tictactoe/<game_code>/<size>/<player>/<game_type>')
 def tictactoe(game_code, size, player, game_type):
@@ -255,21 +261,46 @@ def tictactoe(game_code, size, player, game_type):
         flash('Игра не найдена', 'danger')
         return redirect(url_for('home_logged'))
 
+    # Устанавливаем имя второго игрока при подключении
+    if player == 'v2' and 'player2_name' not in rooms[game_code]:
+        username = session.get('username', 'Игрок 2')
+        rooms[game_code]['player2_name'] = username
+
+    # Проверяем, готовы ли оба игрока
     room = rooms[game_code]
+    if room['player1_ready'] and room['player2_ready']:
+        return redirect(url_for('play_game',
+                                game_code=game_code,
+                                size=size,
+                                player=player,
+                                game_type=game_type))
+
+    # Устанавливаем флаг готовности для текущего игрока
     if player == 'v1':
         room['player1_ready'] = True
-        # Для первого игрока просто показываем ссылку
+    else:
+        room['player2_ready'] = True
+
+    # Инициализируем игровое состояние, если нужно
+    if 'board' not in room:
+        room['board'] = [''] * 9
+        room['current_turn'] = 'v1'
+        room['game_active'] = True
+
+    # Для первого игрока показываем пригласительную ссылку
+    if player == 'v1':
         return render_template('tictactoe_settings.html',
                                game_code=game_code,
                                invite_link=f"{request.host_url}tictactoe/{game_code}/3v3/v2/friend",
-                               is_player1=True)
+                               is_player1=True,
+                               player1_name=room.get('player1_name', 'Игрок 1'))
     else:
         # Для второго игрока показываем кнопку "Я готов"
-        room['player2_ready'] = True
         return render_template('tictactoe_settings.html',
                                game_code=game_code,
-                               is_player2=True)
-
+                               is_player2=True,
+                               player1_name=room.get('player1_name', 'Игрок 1'),
+                               player2_name=room.get('player2_name', 'Игрок 2'))
 
 @app.route('/start_tictactoe_game', methods=['POST'])
 def start_tictactoe_game():
@@ -293,6 +324,10 @@ def play_game(game_code, size, player, game_type):
         flash('Игра еще не началась', 'danger')
         return redirect(url_for('tictactoe_settings'))
 
+    # Получаем имена игроков из данных комнаты
+    player1_name = rooms[game_code].get('player1_name', 'Игрок 1')
+    player2_name = rooms[game_code].get('player2_name', 'Игрок 2')
+
     # Инициализируем чат для этой игры, если нужно
     if game_code not in chat_messages:
         chat_messages[game_code] = []
@@ -300,6 +335,8 @@ def play_game(game_code, size, player, game_type):
     return render_template('tictactoe.html',
                            game_code=game_code,
                            player=player,
+                           player1_name=player1_name,
+                           player2_name=player2_name,
                            size=size,
                            game_type=game_type)
 
@@ -339,7 +376,145 @@ def get_chat_messages():
     return jsonify(new_messages)
 
 
+@app.route('/make_move', methods=['POST'])
+def make_move():
+    data = request.get_json()
+    game_code = data['game_code']
+    player = data['player']
+    index = int(data['index'])
+
+    if game_code not in rooms:
+        return {'status': 'error', 'message': 'Game not found'}, 404
+
+    room = rooms[game_code]
+
+    # Проверяем, может ли игрок сделать ход
+    if room['current_turn'] != player or not room['game_active'] or room['board'][index] != '':
+        return {'status': 'error', 'message': 'Invalid move'}, 400
+
+    # Обновляем доску
+    symbol = 'X' if player == 'v1' else 'O'
+    room['board'][index] = symbol
+
+    # Проверяем победу
+    winning_lines = check_win(room['board'], symbol)
+    if winning_lines:
+        room['game_active'] = False
+        room['winner'] = player
+        room['winning_lines'] = winning_lines
+        return {
+            'status': 'ok',
+            'board': room['board'],
+            'current_turn': player,
+            'game_active': False,
+            'winner': player,
+            'winning_lines': winning_lines
+        }
+
+    # Проверяем ничью
+    if '' not in room['board']:
+        room['game_active'] = False
+        return {
+            'status': 'ok',
+            'board': room['board'],
+            'current_turn': player,
+            'game_active': False,
+            'winner': None
+        }
+
+    # Передаем ход другому игроку
+    room['current_turn'] = 'v2' if player == 'v1' else 'v1'
+
+    return {
+        'status': 'ok',
+        'board': room['board'],
+        'current_turn': room['current_turn'],
+        'game_active': True,
+        'winner': None
+    }
+
+@app.route('/get_game_state')
+def get_game_state():
+    game_code = request.args.get('game_code')
+
+    if game_code not in rooms:
+        return {'status': 'error', 'message': 'Game not found'}, 404
+
+    room = rooms[game_code]
+
+    return {
+        'status': 'ok',
+        'board': room['board'],
+        'current_turn': room['current_turn'],
+        'game_active': room['game_active'],
+        'winner': room.get('winner'),
+        'restarted': room.get('restarted', False)
+    }
+
+
+@app.route('/leave_game', methods=['POST'])
+def leave_game():
+    data = request.get_json()
+    game_code = data['game_code']
+    player = data['player']
+
+    if game_code in rooms:
+        rooms[game_code]['player_left'] = player
+        rooms[game_code]['game_active'] = False
+    return {'status': 'ok'}
+
+
+@app.route('/request_rematch', methods=['POST'])
+def request_rematch():
+    data = request.get_json()
+    game_code = data['game_code']
+    player = data['player']
+
+    if game_code not in rooms:
+        return {'status': 'error', 'message': 'Game not found'}, 404
+
+    room = rooms[game_code]
+
+    if 'rematch_requests' not in room:
+        room['rematch_requests'] = []
+
+    if player not in room['rematch_requests']:
+        room['rematch_requests'].append(player)
+
+    # Если оба игрока хотят реванш
+    if len(room['rematch_requests']) == 2:
+        # Сбрасываем игру
+        room['board'] = [''] * 9
+        room['current_turn'] = 'v1'
+        room['game_active'] = True
+        room['winner'] = None
+        room['winning_lines'] = []
+        room['rematch_requests'] = []
+        room['restarted'] = True
+        return {'status': 'ok', 'restarted': True}
+    else:
+        return {
+            'status': 'ok',
+            'waiting_for_rematch': 'v2' if player == 'v1' else 'v1'
+        }
+
+
+def check_win(board, symbol):
+    win_patterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
+        [0, 4, 8], [2, 4, 6]  # diagonals
+    ]
+
+    winning_lines = []
+    for pattern in win_patterns:
+        if all(board[i] == symbol for i in pattern):
+            winning_lines.append(pattern)
+
+    return winning_lines if winning_lines else None
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+

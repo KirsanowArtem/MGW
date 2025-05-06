@@ -5,8 +5,12 @@
   <title>Игра в крестики-нолики</title>
   <style>
     :root {
-      --chat-width: 300px;
+      --chat-width: 380px;
       --transition-speed: 0.3s;
+      --primary-color: #4CAF50;
+      --secondary-color: #2196F3;
+      --x-color: #4CAF50;
+      --o-color: #2196F3;
     }
 
     body {
@@ -28,16 +32,85 @@
       transition: margin-right var(--transition-speed);
     }
 
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      margin: 20px 0;
+      background: #ddd;
+      padding: 5px;
+      border-radius: 8px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      cursor: pointer;
+      position: relative;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .cell:hover {
+      background: #f9f9f9;
+    }
+
+    .cell.x::before, .cell.o::before {
+      position: absolute;
+      font-weight: bold;
+      animation: appear 0.3s ease;
+    }
+
+    .cell.x::before {
+      content: "X";
+      color: var(--x-color);
+    }
+
+    .cell.o::before {
+      content: "O";
+      color: var(--o-color);
+    }
+
+    .game-status {
+      font-size: 24px;
+      margin: 20px 0;
+      font-weight: bold;
+      color: #333;
+      min-height: 36px;
+      text-align: center;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      z-index: 1001;
+      animation: fadeInOut 2.5s ease forwards;
+      display: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
     .chat-toggle {
       position: fixed;
       right: 20px;
       top: 20px;
-      background: #4CAF50;
+      background: var(--primary-color);
       color: white;
       border: none;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 50px;
+      height: 50px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -49,6 +122,7 @@
 
     .chat-toggle:hover {
       transform: scale(1.1);
+      background: #45a049;
     }
 
     .chat-container {
@@ -66,64 +140,56 @@
       transform: translateX(calc(var(--chat-width) + 10px));
     }
 
-    .chat-hidden .game-container {
-      margin-right: 0;
-    }
-
     .chat-messages {
       flex: 1;
       overflow-y: auto;
-      padding: 15px;
+      padding: 20px;
       word-wrap: break-word;
       white-space: pre-wrap;
+      background: #fafafa;
     }
 
     .chat-input-container {
-      padding: 10px;
+      padding: 15px;
       border-top: 1px solid #eee;
       background: #f9f9f9;
     }
 
     .chat-input {
       width: 100%;
-      min-height: 40px;
-      max-height: 120px;
-      padding: 8px;
+      min-height: 60px;
+      max-height: 150px;
+      padding: 12px;
       border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: 8px;
       resize: none;
       font-family: inherit;
+      font-size: 16px;
       overflow-y: auto;
     }
 
-    .chat-input:focus {
-      outline: none;
-      border-color: #4CAF50;
-    }
-
     .send-button {
-      margin-top: 8px;
-      padding: 8px 15px;
-      background: #4CAF50;
+      margin-top: 12px;
+      padding: 10px 20px;
+      background: var(--primary-color);
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
       float: right;
-      transition: background 0.2s;
-    }
-
-    .send-button:hover {
-      background: #45a049;
+      transition: all 0.2s;
+      font-size: 16px;
     }
 
     .message {
-      margin-bottom: 12px;
-      padding: 8px 12px;
-      border-radius: 8px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 12px;
       max-width: 80%;
       word-wrap: break-word;
       animation: fadeIn 0.3s ease;
+      line-height: 1.4;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
     .message-self {
@@ -142,23 +208,30 @@
       font-weight: bold;
       font-size: 0.9em;
       color: #555;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+    }
+
+    .message-time {
+      font-size: 0.8em;
+      color: #888;
+      text-align: right;
+      margin-top: 4px;
     }
 
     .scroll-down {
       position: absolute;
-      right: calc(var(--chat-width) + 10px);
-      bottom: 80px;
+      right: calc(var(--chat-width) + 20px);
+      bottom: 90px;
       background: white;
       border: 1px solid #ddd;
       border-radius: 50%;
-      width: 36px;
-      height: 36px;
+      width: 45px;
+      height: 45px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       opacity: 0;
       transform: translateY(20px);
       transition: all 0.3s ease;
@@ -170,24 +243,38 @@
       transform: translateY(0);
     }
 
-    .scroll-down:hover {
-      background: #f5f5f5;
-    }
-
     .unread-badge {
       position: absolute;
-      top: -5px;
-      right: -5px;
+      top: -6px;
+      right: -6px;
       background: #f44336;
       color: white;
       border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      font-size: 12px;
+      width: 22px;
+      height: 22px;
+      font-size: 13px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
+    }
+
+    .restart-button {
+      padding: 12px 24px;
+      background: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .restart-button:hover {
+      background: #0b7dda;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
 
     @keyframes fadeIn {
@@ -195,24 +282,63 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Анимация нового сообщения */
-    @keyframes newMessage {
-      0% { transform: scale(0.95); }
-      50% { transform: scale(1.02); }
-      100% { transform: scale(1); }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      10% { opacity: 1; transform: translateX(-50%) translateY(0); display: block; }
+      90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); display: none; }
     }
 
-    .new-message {
-      animation: newMessage 0.3s ease;
+    @keyframes appear {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
+
+    @keyframes newMessage {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .winning-line {
+    background-color: #FFA500;
+    animation: pulse 1s infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { background-color: #FFA500; }
+    to { background-color: #FFD700; }
+  }
+
+  .game-over-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .exit-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 8px 16px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
   </style>
 </head>
 <body>
+  <button class="exit-button" id="exitButton">Выйти</button>
   <div class="game-container">
-    <!-- Здесь будет игровое поле -->
-    <h1>Игра началась!</h1>
-    <div id="gameBoard"></div>
+    <h1>Крестики-нолики</h1>
+    <div class="game-status" id="gameStatus">Ваш ход: {{ 'X' if player == 'v1' else 'O' }}</div>
+    <div class="game-board" id="gameBoard">
+      <!-- Клетки будут добавлены через JavaScript -->
+    </div>
+    <button class="restart-button" id="restartButton">Начать заново</button>
   </div>
+
+  <div class="notification" id="notification"></div>
 
   <button class="chat-toggle" id="chatToggle">💬</button>
 
@@ -230,14 +356,260 @@
   </div>
 
   <script>
-    // Переменные для чата
+    // Инициализация игры
+    const gameCode = '{{ game_code }}';
+    const currentPlayer = '{{ player }}'; // 'v1' или 'v2'
+    const playerSymbol = currentPlayer === 'v1' ? 'X' : 'O';
+    const playerNames = {
+      'v1': '{{ player1_name }}',
+      'v2': '{{ player2_name }}'
+    };
+    let gameActive = true;
+    let currentTurn = 'v1'; // Игрок 1 начинает
+    let winningLines = [];
+    const exitButton = document.getElementById('exitButton');
+
+    // Инициализация игрового поля
+    const gameBoard = document.getElementById('gameBoard');
+    const gameStatus = document.getElementById('gameStatus');
+    const restartButton = document.getElementById('restartButton');
+
+    // Создаем клетки
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.index = i;
+      cell.addEventListener('click', handleCellClick);
+      gameBoard.appendChild(cell);
+    }
+
+    // Функция показа уведомления
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.style.display = 'block';
+
+      // Сбрасываем анимацию
+      notification.style.animation = 'none';
+      void notification.offsetWidth; // Trigger reflow
+      notification.style.animation = 'fadeInOut 2.5s ease forwards';
+
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 2500);
+    }
+
+    // Функция совершения хода
+    function makeMove(index, symbol) {
+      const cells = document.querySelectorAll('.cell');
+      cells[index].classList.add(symbol.toLowerCase());
+
+      // Проверяем победу
+      if (checkWin(symbol)) {
+        gameStatus.textContent = 'Вы победили!';
+        gameActive = false;
+        return { gameOver: true, winner: currentPlayer };
+      }
+
+      // Проверяем ничью
+      if (checkDraw()) {
+        gameStatus.textContent = 'Ничья!';
+        gameActive = false;
+        return { gameOver: true, winner: null };
+      }
+
+      // Передаем ход другому игроку
+      currentTurn = currentTurn === 'v1' ? 'v2' : 'v1';
+      gameStatus.textContent = currentTurn === currentPlayer ? 'Ваш ход' : `Ход: ${playerNames[currentTurn]}`;
+
+      return { gameOver: false, winner: null };
+    }
+
+    // Проверка победы
+    function checkWin(symbol) {
+      const cells = document.querySelectorAll('.cell');
+      const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // строки
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // столбцы
+        [0, 4, 8], [2, 4, 6]             // диагонали
+      ];
+
+      return winPatterns.some(pattern => {
+        return pattern.every(index => {
+          return cells[index].classList.contains(symbol.toLowerCase());
+        });
+      });
+    }
+
+    // Проверка ничьей
+    function checkDraw() {
+      const cells = document.querySelectorAll('.cell');
+      return [...cells].every(cell =>
+        cell.classList.contains('x') || cell.classList.contains('o'));
+    }
+
+    // Кнопка перезапуска
+    restartButton.addEventListener('click', () => {
+      fetch('/restart_game', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          game_code: gameCode
+        })
+      });
+    });
+
+    // Проверка обновлений игры
+    function checkGameUpdates() {
+      fetch(`/get_game_state?game_code=${gameCode}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.restarted) {
+            window.location.reload();
+            return;
+          }
+
+          // Проверяем, не вышел ли противник
+          if (data.player_left) {
+            gameStatus.textContent = `${playerNames[data.player_left]} вышел из игры`;
+            hideGameElements();
+            return;
+          }
+
+          // Обновляем доску
+          updateBoard(data.board);
+
+          // Обновляем текущего игрока
+          currentTurn = data.current_turn;
+          gameActive = data.game_active;
+
+          // Обработка завершения игры
+          if (!gameActive) {
+            if (data.winner) {
+              // Подсвечиваем выигрышные линии
+              highlightWinningLines(data.winning_lines);
+              gameStatus.textContent = data.winner === currentPlayer
+                ? 'Вы победили!'
+                : `${playerNames[data.winner]} победил!`;
+            } else {
+              gameStatus.textContent = 'Ничья!';
+            }
+            showRematchButton();
+          } else {
+            // Отображаем чей сейчас ход
+            updateTurnDisplay();
+          }
+
+          // Ожидание второго игрока для реванша
+          if (data.waiting_for_rematch) {
+            gameStatus.textContent = `Ожидаем ${playerNames[data.waiting_for_rematch]}...`;
+          }
+        });
+    }
+
+    function updateBoard(board) {
+      const cells = document.querySelectorAll('.cell');
+      cells.forEach((cell, index) => {
+        cell.className = 'cell';
+        if (board[index] === 'X') cell.classList.add('x');
+        if (board[index] === 'O') cell.classList.add('o');
+      });
+    }
+
+    function highlightWinningLines(lines) {
+      winningLines = lines || [];
+      const cells = document.querySelectorAll('.cell');
+
+      // Сбрасываем все подсветки
+      cells.forEach(cell => cell.classList.remove('winning-line'));
+
+      // Подсвечиваем выигрышные линии
+      winningLines.forEach(line => {
+        line.forEach(index => {
+          cells[index].classList.add('winning-line');
+        });
+      });
+    }
+
+    function updateTurnDisplay() {
+      if (currentTurn === currentPlayer) {
+        gameStatus.textContent = 'Ваш ход (' + (currentPlayer === 'v1' ? 'X' : 'O') + ')';
+      } else {
+        gameStatus.textContent = `Сейчас ход: ${playerNames[currentTurn]} (${currentTurn === 'v1' ? 'X' : 'O'})`;
+      }
+    }
+
+    function showRematchButton() {
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.className = 'game-over-buttons';
+
+      const rematchButton = document.createElement('button');
+      rematchButton.className = 'restart-button';
+      rematchButton.textContent = 'Сыграть ещё раз';
+      rematchButton.addEventListener('click', requestRematch);
+
+      buttonsDiv.appendChild(rematchButton);
+      gameStatus.insertAdjacentElement('afterend', buttonsDiv);
+    }
+
+    function hideGameElements() {
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.style.pointerEvents = 'none';
+        cell.style.opacity = '0.5';
+      });
+      const restartButton = document.querySelector('.restart-button');
+      if (restartButton) restartButton.style.display = 'none';
+    }
+
+    function requestRematch() {
+      fetch('/request_rematch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          game_code: gameCode,
+          player: currentPlayer
+        })
+      });
+    }
+
+    // Обработчик клика по клетке
+    function handleCellClick(e) {
+      const cell = e.target;
+      const index = cell.dataset.index;
+
+      // Проверяем, можно ли сделать ход
+      if (!cell.classList.contains('x') && !cell.classList.contains('o') &&
+          gameActive && currentTurn === currentPlayer) {
+
+        // Совершаем ход
+        const symbol = currentPlayer === 'v1' ? 'X' : 'O';
+        cell.classList.add(symbol.toLowerCase());
+
+        // Отправляем ход на сервер
+        fetch('/make_move', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            game_code: gameCode,
+            player: currentPlayer,
+            index: index
+          })
+        });
+      }
+    }
+
+
+    // Чат
     let lastMessageId = 0;
     let isScrolledToBottom = true;
     let unreadCount = 0;
-    const gameCode = '{{ game_code }}';
-    const playerId = '{{ player }}'; // 'v1' или 'v2'
 
-    // Элементы DOM
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
     const sendButton = document.getElementById('sendMessage');
@@ -268,12 +640,8 @@
 
     // Функция обновления бейджа непрочитанных
     function updateUnreadBadge() {
-      if (unreadCount > 0) {
-        unreadBadge.textContent = unreadCount;
-        unreadBadge.style.display = 'flex';
-      } else {
-        unreadBadge.style.display = 'none';
-      }
+      unreadBadge.textContent = unreadCount;
+      unreadBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
     }
 
     // Прокрутка вниз
@@ -298,7 +666,7 @@
           },
           body: JSON.stringify({
             game_code: gameCode,
-            player: playerId,
+            player: currentPlayer,
             message: message
           })
         });
@@ -315,25 +683,29 @@
         e.preventDefault();
         sendMessage();
       }
-      // Shift+Enter - перенос строки (работает по умолчанию)
     });
 
     // Создание элемента сообщения
     function createMessageElement(msg) {
       const messageDiv = document.createElement('div');
-      messageDiv.className = `message message-${msg.player === playerId ? 'self' : 'other'} new-message`;
+      messageDiv.className = `message message-${msg.player === currentPlayer ? 'self' : 'other'} new-message`;
 
       const senderDiv = document.createElement('div');
       senderDiv.className = 'message-sender';
-      senderDiv.textContent = msg.player === playerId ? 'Вы' : (msg.player === 'v1' ? 'Игрок 1' : 'Игрок 2');
+      senderDiv.textContent = msg.player === currentPlayer ? 'Вы' : playerNames[msg.player];
 
       const textDiv = document.createElement('div');
       textDiv.textContent = msg.message;
 
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'message-time';
+      const date = new Date(msg.timestamp * 1000);
+      timeDiv.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
       messageDiv.appendChild(senderDiv);
       messageDiv.appendChild(textDiv);
+      messageDiv.appendChild(timeDiv);
 
-      // Удаляем класс анимации после завершения
       setTimeout(() => {
         messageDiv.classList.remove('new-message');
       }, 300);
@@ -370,7 +742,6 @@
       body.classList.toggle('chat-hidden');
       chatToggle.textContent = body.classList.contains('chat-hidden') ? '💬' : '✕';
 
-      // При открытии чата прокручиваем вниз и сбрасываем счетчик
       if (!body.classList.contains('chat-hidden')) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
         unreadCount = 0;
@@ -379,8 +750,29 @@
       }
     });
 
+    exitButton.addEventListener('click', () => {
+      fetch('/leave_game', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          game_code: gameCode,
+          player: currentPlayer
+        })
+      }).then(() => {
+        window.location.href = '/home';
+      });
+    });
+
+
+
+
     // Проверка новых сообщений каждую секунду
     setInterval(getNewMessages, 1000);
+
+    // Проверка обновлений игры каждые 0.5 секунды
+    setInterval(checkGameUpdates, 500);
 
     // Первоначальная загрузка сообщений
     getNewMessages();
